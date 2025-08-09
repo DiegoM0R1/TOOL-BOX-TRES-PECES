@@ -471,209 +471,104 @@
             shortenedUrls = {};
         }
 
-        // ============ GENERADOR QR ============
-        async function generateQR() {
-            const text = document.getElementById('qr-text').value;
-            const logoFile = document.getElementById('qr-logo').files[0];
-            const resultDiv = document.getElementById('qr-result');
+        // ========= GENERADOR QR =========
 
-            if (!text.trim()) {
-                showError(resultDiv, 'Por favor ingresa un texto o URL');
-                return;
-            }
+    // ESTA ES LA VERSIÓN MEJORADA QUE DEBES USAR
+    async function generateQR() {
+        const text = document.getElementById('qr-text').value;
+        const logoFile = document.getElementById('qr-logo').files[0];
+        const resultDiv = document.getElementById('qr-result');
 
-            showLoading(resultDiv);
-
-            try {
-                // Verificar si QRCode está disponible
-                if (typeof QRCode === 'undefined') {
-                    // Generar QR manual usando algoritmo simple
-                    generateQRManual(text, logoFile, resultDiv);
-                    return;
-                }
-
-                const canvas = document.createElement('canvas');
-                
-                await QRCode.toCanvas(canvas, text, {
-                    width: 300,
-                    margin: 2,
-                    color: {
-                        dark: '#000000',
-                        light: '#FFFFFF'
-                    }
-                });
-
-                if (logoFile) {
-                    const ctx = canvas.getContext('2d');
-                    const img = new Image();
-                    
-                    img.onload = function() {
-                        const logoSize = 50;
-                        const x = (canvas.width - logoSize) / 2;
-                        const y = (canvas.height - logoSize) / 2;
-                        
-                        ctx.fillStyle = 'white';
-                        ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
-                        ctx.drawImage(img, x, y, logoSize, logoSize);
-                        
-                        showQRResult(resultDiv, canvas);
-                    };
-                    
-                    const reader = new FileReader();
-                    reader.onload = (e) => img.src = e.target.result;
-                    reader.readAsDataURL(logoFile);
-                } else {
-                    showQRResult(resultDiv, canvas);
-                }
-                
-            } catch (error) {
-                console.log('Error con QRCode.js, usando método alternativo');
-                generateQRManual(text, logoFile, resultDiv);
-            }
+        if (!text.trim()) {
+            showError(resultDiv, 'Por favor ingresa un texto o URL.');
+            return;
         }
 
-        // Generador QR alternativo usando API externa
-        function generateQRManual(text, logoFile, resultDiv) {
+        showLoading(resultDiv);
+
+        try {
+            if (typeof QRCode === 'undefined') {
+                throw new Error("La librería externa QRCode.js no se pudo cargar. Revisa la conexión o un posible bloqueador.");
+            }
+
             const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const size = 300;
-            canvas.width = size;
-            canvas.height = size;
-
-            // Crear URL para QR API
-            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}`;
             
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            
-            img.onload = function() {
-                ctx.drawImage(img, 0, 0, size, size);
-                
-                if (logoFile) {
-                    const logoImg = new Image();
-                    const reader = new FileReader();
-                    
-                    reader.onload = function(e) {
-                        logoImg.onload = function() {
-                            const logoSize = 50;
-                            const x = (size - logoSize) / 2;
-                            const y = (size - logoSize) / 2;
-                            
-                            // Fondo blanco para el logo
-                            ctx.fillStyle = 'white';
-                            ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
-                            
-                            // Dibujar logo
-                            ctx.drawImage(logoImg, x, y, logoSize, logoSize);
-                            
-                            showQRResult(resultDiv, canvas);
-                        };
-                        logoImg.src = e.target.result;
-                    };
-                    reader.readAsDataURL(logoFile);
-                } else {
-                    showQRResult(resultDiv, canvas);
+            await QRCode.toCanvas(canvas, text, {
+                width: 300,
+                margin: 2,
+                errorCorrectionLevel: 'H',
+                color: {
+                    dark: '#000000',
+                    light: '#FFFFFF'
                 }
-            };
-            
-            img.onerror = function() {
-                // Si falla la API externa, crear QR básico con texto
-                createBasicQR(text, canvas, ctx, size, logoFile, resultDiv);
-            };
-            
-            img.src = qrApiUrl;
-        }
-
-        // Crear QR básico visual como último recurso
-        function createBasicQR(text, canvas, ctx, size, logoFile, resultDiv) {
-            // Limpiar canvas
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, size, size);
-            
-            // Crear patrón QR básico
-            ctx.fillStyle = 'black';
-            const blockSize = size / 21; // QR típico es 21x21
-            
-            // Esquinas de alineación (patrón típico QR)
-            const corners = [
-                {x: 0, y: 0}, {x: 14, y: 0}, {x: 0, y: 14}
-            ];
-            
-            corners.forEach(corner => {
-                // Marco exterior 7x7
-                ctx.fillRect(corner.x * blockSize, corner.y * blockSize, 7 * blockSize, 7 * blockSize);
-                // Interior blanco 5x5
-                ctx.fillStyle = 'white';
-                ctx.fillRect((corner.x + 1) * blockSize, (corner.y + 1) * blockSize, 5 * blockSize, 5 * blockSize);
-                // Centro negro 3x3
-                ctx.fillStyle = 'black';
-                ctx.fillRect((corner.x + 2) * blockSize, (corner.y + 2) * blockSize, 3 * blockSize, 3 * blockSize);
             });
-            
-            // Patrón de datos simulado
-            for (let i = 0; i < 21; i++) {
-                for (let j = 0; j < 21; j++) {
-                    // Evitar esquinas ya dibujadas
-                    if ((i < 9 && j < 9) || (i < 9 && j > 12) || (i > 12 && j < 9)) continue;
-                    
-                    // Patrón pseudo-aleatorio basado en el texto
-                    const hash = text.charCodeAt(i % text.length) + i + j;
-                    if (hash % 3 === 0) {
-                        ctx.fillRect(i * blockSize, j * blockSize, blockSize, blockSize);
-                    }
-                }
-            }
-            
-            // Agregar logo si existe
+
             if (logoFile) {
-                const logoImg = new Image();
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    logoImg.onload = function() {
-                        const logoSize = 50;
-                        const x = (size - logoSize) / 2;
-                        const y = (size - logoSize) / 2;
-                        
-                        ctx.fillStyle = 'white';
-                        ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
-                        ctx.drawImage(logoImg, x, y, logoSize, logoSize);
-                        
-                        showQRResult(resultDiv, canvas);
-                    };
-                    logoImg.src = e.target.result;
-                };
-                reader.readAsDataURL(logoFile);
-            } else {
-                showQRResult(resultDiv, canvas);
+                await new Promise((resolve, reject) => {
+                    addLogoToQR(canvas, logoFile, resolve, reject);
+                });
             }
             
-            // Agregar texto de información
-            resultDiv.innerHTML += `
-                <div style="margin-top: 10px; padding: 10px; background: rgba(255,193,7,0.2); border-radius: 5px; font-size: 0.9em;">
-                    ⚠️ QR generado en modo básico. Para mejor calidad, verifica que la librería QRCode.js se cargue correctamente.
-                </div>
-            `;
-        }
+            showQRResult(resultDiv, canvas);
 
-        function showQRResult(container, canvas) {
-            qrCanvas = canvas;
-            container.innerHTML = `
-                <div class="qr-result">
-                    ${canvas.outerHTML}
-                    <button onclick="downloadQR()" class="btn btn-secondary">Descargar QR</button>
-                </div>
-            `;
+        } catch (error) {
+            // ¡ESTA PARTE ES LA CLAVE! AHORA MUESTRA EL ERROR EN LA PANTALLA
+            console.error("Error detallado al generar QR:", error);
+            showError(resultDiv, `Error: ${error.message}`);
         }
-
-        function downloadQR() {
-            if (qrCanvas) {
-                const link = document.createElement('a');
-                link.download = 'codigo-qr.png';
-                link.href = qrCanvas.toDataURL();
-                link.click();
+    }
+    
+    // Función de ayuda para añadir el logo, ahora más robusta
+    function addLogoToQR(canvas, logoFile, resolve, reject) {
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            try {
+                const logoSizeRatio = 0.25;
+                const logoSize = canvas.width * logoSizeRatio;
+                const x = (canvas.width - logoSize) / 2;
+                const y = (canvas.height - logoSize) / 2;
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+                ctx.drawImage(img, x, y, logoSize, logoSize);
+                resolve(); // Éxito
+            } catch (e) {
+                reject(e); // Falla al dibujar
             }
+        };
+    
+        img.onerror = function() {
+            // Falla si el archivo no es una imagen válida
+            reject(new Error("El archivo del logo no es una imagen válida o no se pudo leer."));
+        };
+
+        const reader = new FileReader();
+        reader.onload = (e) => img.src = e.target.result;
+        reader.onerror = () => reject(new Error("No se pudo leer el archivo del logo."));
+        reader.readAsDataURL(logoFile);
+    }
+
+    function showQRResult(container, canvas) {
+        qrCanvas = canvas;
+        container.innerHTML = `
+            <div class="qr-result">
+                ${canvas.outerHTML}
+                <button onclick="downloadQR()" class="btn btn-secondary">Descargar QR</button>
+            </div>
+        `;
+        qrCanvas = container.querySelector('canvas');
+    }
+
+    function downloadQR() {
+        if (qrCanvas) {
+            const link = document.createElement('a');
+            link.download = 'codigo-qr.png';
+            link.href = qrCanvas.toDataURL('image/png');
+            link.click();
         }
+    }
 
         // ============ REMOVEDOR DE FONDO ============
         function loadImageForBgRemoval() {
