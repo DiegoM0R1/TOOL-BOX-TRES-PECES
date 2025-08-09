@@ -471,61 +471,114 @@
             shortenedUrls = {};
         }
 
-        // ========= GENERADOR QR =========
+   // REEMPLAZA TODA LA SECCIÓN "========= GENERADOR QR =========" CON ESTE CÓDIGO:
 
-    // ESTA ES LA VERSIÓN MEJORADA QUE DEBES USAR
-    async function generateQR() {
-        const text = document.getElementById('qr-text').value;
-        const logoFile = document.getElementById('qr-logo').files[0];
-        const resultDiv = document.getElementById('qr-result');
+// ========= GENERADOR QR =========
 
-        if (!text.trim()) {
-            showError(resultDiv, 'Por favor ingresa un texto o URL.');
+// Función para cargar la librería QRCode dinámicamente
+function loadQRCodeLibrary() {
+    return new Promise((resolve, reject) => {
+        if (typeof QRCode !== 'undefined') {
+            resolve();
             return;
         }
 
-        showLoading(resultDiv);
-
-        try {
-            if (typeof QRCode === 'undefined') {
-                throw new Error("La librería externa QRCode.js no se pudo cargar. Revisa la conexión o un posible bloqueador.");
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js';
+        script.onload = () => {
+            if (typeof QRCode !== 'undefined') {
+                resolve();
+            } else {
+                reject(new Error('No se pudo cargar la librería QRCode'));
             }
+        };
+        script.onerror = () => {
+            reject(new Error('Error al cargar la librería QRCode desde CDN'));
+        };
+        
+        document.head.appendChild(script);
+    });
+}
 
-            const canvas = document.createElement('canvas');
-            
-            await QRCode.toCanvas(canvas, text, {
-                width: 300,
-                margin: 2,
-                errorCorrectionLevel: 'H',
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF'
-                }
-            });
+// Generador QR con implementación alternativa
+async function generateQR() {
+    const text = document.getElementById('qr-text').value;
+    const logoFile = document.getElementById('qr-logo').files[0];
+    const resultDiv = document.getElementById('qr-result');
 
-            if (logoFile) {
-                await new Promise((resolve, reject) => {
-                    addLogoToQR(canvas, logoFile, resolve, reject);
-                });
-            }
-            
-            showQRResult(resultDiv, canvas);
-
-        } catch (error) {
-            // ¡ESTA PARTE ES LA CLAVE! AHORA MUESTRA EL ERROR EN LA PANTALLA
-            console.error("Error detallado al generar QR:", error);
-            showError(resultDiv, `Error: ${error.message}`);
-        }
+    if (!text.trim()) {
+        showError(resultDiv, 'Por favor ingresa un texto o URL.');
+        return;
     }
-    
-    // Función de ayuda para añadir el logo, ahora más robusta
-    function addLogoToQR(canvas, logoFile, resolve, reject) {
+
+    showLoading(resultDiv);
+
+    try {
+        // Intentar cargar la librería QRCode
+        await loadQRCodeLibrary();
+        
+        const canvas = document.createElement('canvas');
+        
+        await QRCode.toCanvas(canvas, text, {
+            width: 300,
+            margin: 2,
+            errorCorrectionLevel: 'H',
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        });
+
+        if (logoFile) {
+            await addLogoToQR(canvas, logoFile);
+        }
+        
+        showQRResult(resultDiv, canvas);
+
+    } catch (error) {
+        console.error("Error al generar QR:", error);
+        // Fallback: usar API externa
+        generateQRFallback(text, resultDiv);
+    }
+}
+
+// Método alternativo usando API externa
+function generateQRFallback(text, resultDiv) {
+    try {
+        const encodedText = encodeURIComponent(text);
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedText}`;
+        
+        const img = document.createElement('img');
+        img.src = qrUrl;
+        img.style.borderRadius = '10px';
+        img.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.2)';
+        img.onload = function() {
+            resultDiv.innerHTML = `
+                <div class="qr-result">
+                    ${img.outerHTML}
+                    <button onclick="downloadQRFromUrl('${qrUrl}')" class="btn btn-secondary">Descargar QR</button>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">
+                        🌐 Generado usando API externa
+                    </p>
+                </div>
+            `;
+        };
+        img.onerror = function() {
+            showError(resultDiv, 'Error: No se pudo generar el código QR. Verifica tu conexión a internet.');
+        };
+    } catch (error) {
+        showError(resultDiv, 'Error: No se pudo generar el código QR.');
+    }
+}
+
+function addLogoToQR(canvas, logoFile) {
+    return new Promise((resolve, reject) => {
         const ctx = canvas.getContext('2d');
         const img = new Image();
         
         img.onload = function() {
             try {
-                const logoSizeRatio = 0.25;
+                const logoSizeRatio = 0.2;
                 const logoSize = canvas.width * logoSizeRatio;
                 const x = (canvas.width - logoSize) / 2;
                 const y = (canvas.height - logoSize) / 2;
@@ -533,176 +586,642 @@
                 ctx.fillStyle = 'white';
                 ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
                 ctx.drawImage(img, x, y, logoSize, logoSize);
-                resolve(); // Éxito
+                resolve();
             } catch (e) {
-                reject(e); // Falla al dibujar
+                reject(new Error("Error al procesar el logo: " + e.message));
             }
         };
-    
+
         img.onerror = function() {
-            // Falla si el archivo no es una imagen válida
-            reject(new Error("El archivo del logo no es una imagen válida o no se pudo leer."));
+            reject(new Error("El archivo del logo no es válido."));
         };
 
         const reader = new FileReader();
         reader.onload = (e) => img.src = e.target.result;
-        reader.onerror = () => reject(new Error("No se pudo leer el archivo del logo."));
+        reader.onerror = () => reject(new Error("Error al leer el archivo del logo."));
         reader.readAsDataURL(logoFile);
+    });
+}
+
+function showQRResult(container, canvas) {
+    qrCanvas = canvas;
+    container.innerHTML = `
+        <div class="qr-result">
+            ${canvas.outerHTML}
+            <button onclick="downloadQR()" class="btn btn-secondary">Descargar QR</button>
+        </div>
+    `;
+    qrCanvas = container.querySelector('canvas');
+    if (qrCanvas) {
+        qrCanvas.getContext('2d', { willReadFrequently: true });
+    }
+}
+
+function downloadQR() {
+    if (qrCanvas) {
+        const link = document.createElement('a');
+        link.download = 'codigo-qr.png';
+        link.href = qrCanvas.toDataURL('image/png');
+        link.click();
+    }
+}
+
+function downloadQRFromUrl(qrUrl) {
+    const link = document.createElement('a');
+    link.download = 'codigo-qr.png';
+    link.href = qrUrl;
+    link.target = '_blank';
+    link.click();
+}
+
+       // REEMPLAZA TODA LA SECCIÓN "============ REMOVEDOR DE FONDO ============" CON ESTE CÓDIGO:
+
+// ============ REMOVEDOR DE FONDO MEJORADO ============
+
+function loadImageForBgRemoval() {
+    const fileInput = document.getElementById('bg-image');
+    const resultDiv = document.getElementById('bg-result');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showError(resultDiv, 'Por favor selecciona una imagen');
+        return;
     }
 
-    function showQRResult(container, canvas) {
-        qrCanvas = canvas;
-        container.innerHTML = `
-            <div class="qr-result">
-                ${canvas.outerHTML}
-                <button onclick="downloadQR()" class="btn btn-secondary">Descargar QR</button>
-            </div>
-        `;
-        qrCanvas = container.querySelector('canvas');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            setupBgRemovalCanvas(img, resultDiv);
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+function setupBgRemovalCanvas(img, container) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    
+    
+    const maxSize = 500;
+    let { width, height } = img;
+    
+    if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width *= ratio;
+        height *= ratio;
     }
-
-    function downloadQR() {
-        if (qrCanvas) {
-            const link = document.createElement('a');
-            link.download = 'codigo-qr.png';
-            link.href = qrCanvas.toDataURL('image/png');
-            link.click();
-        }
-    }
-
-        // ============ REMOVEDOR DE FONDO ============
-        function loadImageForBgRemoval() {
-            const fileInput = document.getElementById('bg-image');
-            const resultDiv = document.getElementById('bg-result');
-            const file = fileInput.files[0];
-
-            if (!file) {
-                showError(resultDiv, 'Por favor selecciona una imagen');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    setupBgRemovalCanvas(img, resultDiv);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function setupBgRemovalCanvas(img, container) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            
-            const maxSize = 400;
-            let { width, height } = img;
-            
-            if (width > maxSize || height > maxSize) {
-                const ratio = Math.min(maxSize / width, maxSize / height);
-                width *= ratio;
-                height *= ratio;
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            bgCanvas = canvas;
-            bgCtx = ctx;
-            originalImageData = ctx.getImageData(0, 0, width, height);
-            
-            container.innerHTML = `
-                <div class="canvas-container">
-                    ${canvas.outerHTML}
-                </div>
-                <div class="color-picker-container">
-                    <label>Color a remover:</label>
+    
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    bgCanvas = canvas;
+    bgCtx = ctx;
+    originalImageData = ctx.getImageData(0, 0, width, height);
+    
+    container.innerHTML = `
+        <div class="canvas-container">
+            ${canvas.outerHTML}
+        </div>
+        <div class="color-picker-container">
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; justify-content: center;">
+                <div>
+                    <label>🎨 Color:</label>
                     <input type="color" id="bg-color-picker" class="color-picker" value="#ffffff">
-                    <label>Tolerancia:</label>
-                    <input type="range" id="tolerance-slider" class="tolerance-slider" min="0" max="100" value="20">
-                    <span id="tolerance-value">20</span>
                 </div>
-                <button onclick="removeBackgroundByColor()" class="btn">Remover Color</button>
-                <button onclick="resetImage()" class="btn btn-secondary">Restaurar Original</button>
-                <button onclick="downloadProcessedImage()" class="btn btn-secondary">Descargar Resultado</button>
-            `;
-            
-            bgCanvas = container.querySelector('canvas');
-            bgCtx = bgCanvas.getContext('2d');
-            
-            document.getElementById('tolerance-slider').oninput = function() {
-                document.getElementById('tolerance-value').textContent = this.value;
-            };
-            
-            bgCanvas.onclick = function(e) {
-                const rect = bgCanvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const imageData = bgCtx.getImageData(x, y, 1, 1);
-                const [r, g, b] = imageData.data;
-                const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-                document.getElementById('bg-color-picker').value = hex;
-            };
+                <div>
+                    <label>📏 Tolerancia:</label>
+                    <input type="range" id="tolerance-slider" class="tolerance-slider" min="0" max="150" value="30">
+                    <span id="tolerance-value">30</span>
+                </div>
+                <div>
+                    <label>🔧 Algoritmo:</label>
+                    <select id="removal-algorithm" class="form-control" style="width: auto;">
+                        <option value="advanced">Avanzado (RGB+LAB)</option>
+                        <option value="euclidean">Euclidiano mejorado</option>
+                        <option value="hsv">HSV Color Space</option>
+                        <option value="chroma">Chroma Key</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
+            <button onclick="removeBackgroundAdvanced()" class="btn">🎯 Remover Fondo</button>
+            <button onclick="autoDetectBackground()" class="btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">🤖 Auto-detectar</button>
+            <button onclick="magicWandTool()" class="btn" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);">✨ Varita Mágica</button>
+            <button onclick="resetImage()" class="btn btn-secondary">↩️ Restaurar</button>
+            <button onclick="downloadProcessedImage()" class="btn btn-secondary">💾 Descargar</button>
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0;">
+            <button onclick="applyEdgeSmoothing()" class="btn btn-secondary" style="font-size: 0.9rem;">🔧 Suavizar Bordes</button>
+            <button onclick="removeNoise()" class="btn btn-secondary" style="font-size: 0.9rem;">🧹 Quitar Ruido</button>
+            <button onclick="expandSelection()" class="btn btn-secondary" style="font-size: 0.9rem;">➕ Expandir</button>
+            <button onclick="contractSelection()" class="btn btn-secondary" style="font-size: 0.9rem;">➖ Contraer</button>
+        </div>
+    `;
+    
+    bgCanvas = container.querySelector('canvas');
+bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
+    
+    document.getElementById('tolerance-slider').oninput = function() {
+        document.getElementById('tolerance-value').textContent = this.value;
+    };
+    
+    // Mejorado: click para seleccionar color con área promedio
+    bgCanvas.onclick = function(e) {
+        const rect = bgCanvas.getBoundingClientRect();
+        const x = Math.floor(e.clientX - rect.left);
+        const y = Math.floor(e.clientY - rect.top);
+        
+        // Tomar muestra de área 3x3 para mejor precisión
+        const samples = [];
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                const sx = Math.max(0, Math.min(bgCanvas.width - 1, x + dx));
+                const sy = Math.max(0, Math.min(bgCanvas.height - 1, y + dy));
+                const imageData = bgCtx.getImageData(sx, sy, 1, 1);
+                samples.push(imageData.data);
+            }
         }
+        
+        // Promedio de las muestras
+        let r = 0, g = 0, b = 0;
+        samples.forEach(sample => {
+            r += sample[0];
+            g += sample[1];
+            b += sample[2];
+        });
+        
+        r = Math.round(r / samples.length);
+        g = Math.round(g / samples.length);
+        b = Math.round(b / samples.length);
+        
+        const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+        document.getElementById('bg-color-picker').value = hex;
+        
+        showNotification(`🎨 Color seleccionado: RGB(${r}, ${g}, ${b})`);
+    };
+}
 
-        function removeBackgroundByColor() {
-            if (!originalImageData) return;
+// Algoritmo avanzado de remoción de fondo
+function removeBackgroundAdvanced() {
+    if (!originalImageData) return;
+    
+    const colorPicker = document.getElementById('bg-color-picker');
+    const tolerance = parseInt(document.getElementById('tolerance-slider').value);
+    const algorithm = document.getElementById('removal-algorithm').value;
+    
+    const hex = colorPicker.value;
+    const targetR = parseInt(hex.slice(1, 3), 16);
+    const targetG = parseInt(hex.slice(3, 5), 16);
+    const targetB = parseInt(hex.slice(5, 7), 16);
+    
+    const imageData = bgCtx.createImageData(originalImageData);
+    const data = imageData.data;
+    const originalData = originalImageData.data;
+    
+    // Convertir color objetivo a diferentes espacios de color
+    const targetLab = rgbToLab(targetR, targetG, targetB);
+    const targetHsv = rgbToHsv(targetR, targetG, targetB);
+    
+    for (let i = 0; i < originalData.length; i += 4) {
+        const r = originalData[i];
+        const g = originalData[i + 1];
+        const b = originalData[i + 2];
+        const a = originalData[i + 3];
+        
+        let shouldRemove = false;
+        
+        switch (algorithm) {
+            case 'advanced':
+                shouldRemove = advancedColorMatch(r, g, b, targetR, targetG, targetB, targetLab, tolerance);
+                break;
+            case 'euclidean':
+                shouldRemove = euclideanColorMatch(r, g, b, targetR, targetG, targetB, tolerance);
+                break;
+            case 'hsv':
+                shouldRemove = hsvColorMatch(r, g, b, targetHsv, tolerance);
+                break;
+            case 'chroma':
+                shouldRemove = chromaKeyMatch(r, g, b, targetR, targetG, targetB, tolerance);
+                break;
+        }
+        
+        if (shouldRemove) {
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = b;
+            data[i + 3] = 0; // Transparente
+        } else {
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = b;
+            data[i + 3] = a;
+        }
+    }
+    
+    bgCtx.putImageData(imageData, 0, 0);
+    showNotification(`✨ Fondo removido usando algoritmo ${algorithm}`);
+}
+
+// Algoritmos de comparación de colores
+function advancedColorMatch(r, g, b, targetR, targetG, targetB, targetLab, tolerance) {
+    // Combina RGB euclidiano con LAB perceptual
+    const rgbDiff = Math.sqrt(
+        Math.pow(r - targetR, 2) + 
+        Math.pow(g - targetG, 2) + 
+        Math.pow(b - targetB, 2)
+    );
+    
+    const currentLab = rgbToLab(r, g, b);
+    const labDiff = Math.sqrt(
+        Math.pow(currentLab.l - targetLab.l, 2) + 
+        Math.pow(currentLab.a - targetLab.a, 2) + 
+        Math.pow(currentLab.b - targetLab.b, 2)
+    );
+    
+    const combinedDiff = (rgbDiff * 0.3 + labDiff * 0.7);
+    return combinedDiff <= tolerance * 2.5;
+}
+
+function euclideanColorMatch(r, g, b, targetR, targetG, targetB, tolerance) {
+    // Distancia euclidiana mejorada con pesos perceptuales
+    const weightR = 0.299;
+    const weightG = 0.587;
+    const weightB = 0.114;
+    
+    const diff = Math.sqrt(
+        weightR * Math.pow(r - targetR, 2) + 
+        weightG * Math.pow(g - targetG, 2) + 
+        weightB * Math.pow(b - targetB, 2)
+    );
+    
+    return diff <= tolerance * 1.5;
+}
+
+function hsvColorMatch(r, g, b, targetHsv, tolerance) {
+    const currentHsv = rgbToHsv(r, g, b);
+    
+    // Diferencia en tono (circular)
+    let hueDiff = Math.abs(currentHsv.h - targetHsv.h);
+    hueDiff = Math.min(hueDiff, 360 - hueDiff);
+    
+    const satDiff = Math.abs(currentHsv.s - targetHsv.s);
+    const valDiff = Math.abs(currentHsv.v - targetHsv.v);
+    
+    const hsvDiff = (hueDiff / 180) * 100 + satDiff + valDiff;
+    return hsvDiff <= tolerance * 0.8;
+}
+
+function chromaKeyMatch(r, g, b, targetR, targetG, targetB, tolerance) {
+    // Chroma key especializado para verdes/azules
+    const isGreenish = targetG > targetR && targetG > targetB;
+    const isBlueish = targetB > targetR && targetB > targetG;
+    
+    if (isGreenish || isBlueish) {
+        const chromaDiff = Math.abs(g - targetG) + Math.abs(b - targetB);
+        const lumaDiff = Math.abs((r + g + b) - (targetR + targetG + targetB));
+        return (chromaDiff + lumaDiff * 0.5) <= tolerance * 2;
+    } else {
+        return euclideanColorMatch(r, g, b, targetR, targetG, targetB, tolerance);
+    }
+}
+
+// Auto-detectar color de fondo dominante
+function autoDetectBackground() {
+    if (!originalImageData) return;
+    
+    const data = originalImageData.data;
+    const width = bgCanvas.width;
+    const height = bgCanvas.height;
+    const colorCounts = {};
+    
+    // Muestrear bordes para encontrar color dominante
+    const samplePoints = [];
+    
+    // Bordes superior e inferior
+    for (let x = 0; x < width; x += 10) {
+        samplePoints.push([x, 0], [x, height - 1]);
+    }
+    // Bordes izquierdo y derecho
+    for (let y = 0; y < height; y += 10) {
+        samplePoints.push([0, y], [width - 1, y]);
+    }
+    
+    samplePoints.forEach(([x, y]) => {
+        const index = (y * width + x) * 4;
+        const r = data[index];
+        const g = data[index + 1];
+        const b = data[index + 2];
+        
+        // Agrupar colores similares (reducir precisión)
+        const key = `${Math.floor(r/10)*10},${Math.floor(g/10)*10},${Math.floor(b/10)*10}`;
+        colorCounts[key] = (colorCounts[key] || 0) + 1;
+    });
+    
+    // Encontrar color más común
+    let maxCount = 0;
+    let dominantColor = '255,255,255';
+    
+    for (const [color, count] of Object.entries(colorCounts)) {
+        if (count > maxCount) {
+            maxCount = count;
+            dominantColor = color;
+        }
+    }
+    
+    const [r, g, b] = dominantColor.split(',').map(Number);
+    const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    
+    document.getElementById('bg-color-picker').value = hex;
+    document.getElementById('tolerance-slider').value = 50;
+    document.getElementById('tolerance-value').textContent = '50';
+    
+    showNotification(`🤖 Color de fondo detectado: ${hex}`);
+    removeBackgroundAdvanced();
+}
+
+// Herramienta varita mágica (selección por región)
+function magicWandTool() {
+    showNotification('✨ Haz clic en el área que deseas remover');
+    
+    bgCanvas.style.cursor = 'crosshair';
+    
+    const magicWandHandler = function(e) {
+        const rect = bgCanvas.getBoundingClientRect();
+        const x = Math.floor(e.clientX - rect.left);
+        const y = Math.floor(e.clientY - rect.top);
+        
+        floodFillRemoval(x, y);
+        
+        bgCanvas.removeEventListener('click', magicWandHandler);
+        bgCanvas.style.cursor = 'crosshair';
+        showNotification('✅ Región removida con varita mágica');
+    };
+    
+    bgCanvas.addEventListener('click', magicWandHandler);
+}
+
+// Algoritmo flood fill para varita mágica
+function floodFillRemoval(startX, startY) {
+    const imageData = bgCtx.getImageData(0, 0, bgCanvas.width, bgCanvas.height);
+    const data = imageData.data;
+    const width = bgCanvas.width;
+    const height = bgCanvas.height;
+    
+    const startIndex = (startY * width + startX) * 4;
+    const targetR = data[startIndex];
+    const targetG = data[startIndex + 1];
+    const targetB = data[startIndex + 2];
+    
+    const tolerance = parseInt(document.getElementById('tolerance-slider').value);
+    const visited = new Set();
+    const stack = [[startX, startY]];
+    
+    while (stack.length > 0) {
+        const [x, y] = stack.pop();
+        
+        if (x < 0 || x >= width || y < 0 || y >= height) continue;
+        
+        const key = `${x},${y}`;
+        if (visited.has(key)) continue;
+        visited.add(key);
+        
+        const index = (y * width + x) * 4;
+        const r = data[index];
+        const g = data[index + 1];
+        const b = data[index + 2];
+        
+        const diff = Math.sqrt(
+            Math.pow(r - targetR, 2) + 
+            Math.pow(g - targetG, 2) + 
+            Math.pow(b - targetB, 2)
+        );
+        
+        if (diff <= tolerance * 2) {
+            data[index + 3] = 0; // Hacer transparente
             
-            const colorPicker = document.getElementById('bg-color-picker');
-            const tolerance = parseInt(document.getElementById('tolerance-slider').value);
+            // Añadir píxeles vecinos
+            stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+        }
+    }
+    
+    bgCtx.putImageData(imageData, 0, 0);
+}
+
+// Funciones de post-procesamiento
+function applyEdgeSmoothing() {
+    if (!bgCtx) return;
+    
+    const imageData = bgCtx.getImageData(0, 0, bgCanvas.width, bgCanvas.height);
+    const data = imageData.data;
+    const width = bgCanvas.width;
+    const height = bgCanvas.height;
+    
+    // Anti-aliasing en los bordes
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const index = (y * width + x) * 4;
             
-            const hex = colorPicker.value;
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
+            if (data[index + 3] === 0) continue; // Skip transparent
             
-            const imageData = bgCtx.createImageData(originalImageData);
-            const data = imageData.data;
-            const originalData = originalImageData.data;
+            // Contar píxeles transparentes vecinos
+            let transparentNeighbors = 0;
+            const neighbors = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1],           [0, 1],
+                [1, -1],  [1, 0],  [1, 1]
+            ];
             
-            for (let i = 0; i < originalData.length; i += 4) {
-                const pixelR = originalData[i];
-                const pixelG = originalData[i + 1];
-                const pixelB = originalData[i + 2];
-                
-                const diff = Math.sqrt(
-                    Math.pow(pixelR - r, 2) +
-                    Math.pow(pixelG - g, 2) +
-                    Math.pow(pixelB - b, 2)
-                );
-                
-                if (diff <= tolerance * 4.41) {
-                    data[i] = pixelR;
-                    data[i + 1] = pixelG;
-                    data[i + 2] = pixelB;
-                    data[i + 3] = 0;
-                } else {
-                    data[i] = pixelR;
-                    data[i + 1] = pixelG;
-                    data[i + 2] = pixelB;
-                    data[i + 3] = originalData[i + 3];
+            neighbors.forEach(([dx, dy]) => {
+                const nIndex = ((y + dy) * width + (x + dx)) * 4;
+                if (data[nIndex + 3] === 0) transparentNeighbors++;
+            });
+            
+            // Aplicar suavizado si hay transparencia vecina
+            if (transparentNeighbors > 0 && transparentNeighbors < 8) {
+                const alpha = Math.max(50, 255 - (transparentNeighbors * 30));
+                data[index + 3] = alpha;
+            }
+        }
+    }
+    
+    bgCtx.putImageData(imageData, 0, 0);
+    showNotification('🔧 Bordes suavizados');
+}
+
+function removeNoise() {
+    if (!bgCtx) return;
+    
+    const imageData = bgCtx.getImageData(0, 0, bgCanvas.width, bgCanvas.height);
+    const data = imageData.data;
+    const width = bgCanvas.width;
+    const height = bgCanvas.height;
+    const newData = new Uint8ClampedArray(data);
+    
+    // Filtro mediana para remover ruido
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const index = (y * width + x) * 4;
+            
+            const alphaValues = [];
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const nIndex = ((y + dy) * width + (x + dx)) * 4;
+                    alphaValues.push(data[nIndex + 3]);
                 }
             }
             
-            bgCtx.putImageData(imageData, 0, 0);
+            alphaValues.sort((a, b) => a - b);
+            const medianAlpha = alphaValues[4]; // Valor mediano
+            
+            newData[index + 3] = medianAlpha;
         }
+    }
+    
+    bgCtx.putImageData(new ImageData(newData, width, height), 0, 0);
+    showNotification('🧹 Ruido removido');
+}
 
-        function resetImage() {
-            if (originalImageData && bgCtx) {
-                bgCtx.putImageData(originalImageData, 0, 0);
+function expandSelection() {
+    if (!bgCtx) return;
+    
+    const imageData = bgCtx.getImageData(0, 0, bgCanvas.width, bgCanvas.height);
+    const data = imageData.data;
+    const width = bgCanvas.width;
+    const height = bgCanvas.height;
+    const newData = new Uint8ClampedArray(data);
+    
+    // Expandir áreas transparentes
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const index = (y * width + x) * 4;
+            
+            if (data[index + 3] > 0) continue; // Skip non-transparent
+            
+            // Si hay píxeles opacos vecinos, hacerlos transparentes
+            const neighbors = [
+                [-1, 0], [1, 0], [0, -1], [0, 1]
+            ];
+            
+            neighbors.forEach(([dx, dy]) => {
+                const nIndex = ((y + dy) * width + (x + dx)) * 4;
+                if (data[nIndex + 3] > 0) {
+                    newData[nIndex + 3] = 0;
+                }
+            });
+        }
+    }
+    
+    bgCtx.putImageData(new ImageData(newData, width, height), 0, 0);
+    showNotification('➕ Selección expandida');
+}
+
+function contractSelection() {
+    if (!bgCtx) return;
+    
+    const imageData = bgCtx.getImageData(0, 0, bgCanvas.width, bgCanvas.height);
+    const data = imageData.data;
+    const width = bgCanvas.width;
+    const height = bgCanvas.height;
+    const newData = new Uint8ClampedArray(data);
+    
+    // Contraer áreas transparentes
+    for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+            const index = (y * width + x) * 4;
+            
+            if (data[index + 3] === 0) continue; // Skip transparent
+            
+            // Si hay píxeles transparentes vecinos, hacer este transparente
+            const neighbors = [
+                [-1, 0], [1, 0], [0, -1], [0, 1]
+            ];
+            
+            let hasTransparentNeighbor = false;
+            neighbors.forEach(([dx, dy]) => {
+                const nIndex = ((y + dy) * width + (x + dx)) * 4;
+                if (data[nIndex + 3] === 0) {
+                    hasTransparentNeighbor = true;
+                }
+            });
+            
+            if (hasTransparentNeighbor) {
+                newData[index + 3] = 0;
             }
         }
+    }
+    
+    bgCtx.putImageData(new ImageData(newData, width, height), 0, 0);
+    showNotification('➖ Selección contraída');
+}
 
-        function downloadProcessedImage() {
-            if (bgCanvas) {
-                const link = document.createElement('a');
-                link.download = 'imagen-sin-fondo.png';
-                link.href = bgCanvas.toDataURL('image/png');
-                link.click();
-            }
+function resetImage() {
+    if (originalImageData && bgCtx) {
+        bgCtx.putImageData(originalImageData, 0, 0);
+        showNotification('↩️ Imagen restaurada');
+    }
+}
+
+function downloadProcessedImage() {
+    if (bgCanvas) {
+        const link = document.createElement('a');
+        link.download = 'imagen-sin-fondo.png';
+        link.href = bgCanvas.toDataURL('image/png');
+        link.click();
+        showNotification('💾 Imagen descargada');
+    }
+}
+
+// Funciones auxiliares para conversión de espacios de color
+function rgbToLab(r, g, b) {
+    // Simplified RGB to LAB conversion
+    const x = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
+    const y = r * 0.2126729 + g * 0.7151522 + b * 0.0721750;
+    const z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
+    
+    const fx = x > 0.008856 ? Math.pow(x / 95.047, 1/3) : (7.787 * x / 95.047 + 16/116);
+    const fy = y > 0.008856 ? Math.pow(y / 100.000, 1/3) : (7.787 * y / 100.000 + 16/116);
+    const fz = z > 0.008856 ? Math.pow(z / 108.883, 1/3) : (7.787 * z / 108.883 + 16/116);
+    
+    return {
+        l: 116 * fy - 16,
+        a: 500 * (fx - fy),
+        b: 200 * (fy - fz)
+    };
+}
+
+function rgbToHsv(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const diff = max - min;
+    
+    let h = 0;
+    let s = max === 0 ? 0 : diff / max;
+    let v = max;
+    
+    if (diff !== 0) {
+        switch (max) {
+            case r: h = (g - b) / diff + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / diff + 2; break;
+            case b: h = (r - g) / diff + 4; break;
         }
+        h /= 6;
+    }
+    
+    return {
+        h: h * 360,
+        s: s * 100,
+        v: v * 100
+    };
+}
 
         // ============ PROCESADOR DE VIDEOS ============
         function processVideoUrl() {
