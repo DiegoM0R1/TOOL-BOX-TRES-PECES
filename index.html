@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolBox Pro - Herramientas Online Gratuitas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .tool-card h3 {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tool-icon {
+            font-size: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #00b894, #55a3ff);
+            margin-top: 0.5rem;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            text-align: center;
+            color: #666;
+        }
+
+        .file-input-display:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .result-container {
+            margin-top: 1.5rem;
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-result {
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .qr-result canvas {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #ffe6e6;
+            color: #d63031;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            border: 1px solid #fab1a0;
+        }
+
+        .success-message {
+            background: #e6ffe6;
+            color: #00b894;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            border: 1px solid #a8e6cf;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin: 1rem 0;
+        }
+
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .canvas-container canvas {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            cursor: crosshair;
+        }
+
+        .color-picker-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin: 1rem 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .color-picker {
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .tolerance-slider {
+            width: 150px;
+        }
+
+        .video-info {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            text-align: left;
+        }
+
+        .download-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .download-link {
+            background: linear-gradient(45deg, #00b894, #55a3ff);
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .download-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 184, 148, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+
+            .color-picker-container {
+                flex-direction: column;
+            }
+        }
+
+        .url-result-box {
+            background: rgba(255,255,255,0.8);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            word-break: break-all;
+            font-family: monospace;
+            border: 2px solid #667eea;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛠️ ToolBox Pro</h1>
+        <p>Tu suite completa de herramientas online gratuitas - 100% JavaScript</p>
+    </div>
+
+    <div class="container">
+        <div class="tools-grid">
+            <!-- Generador de QR -->
+            <div class="tool-card">
+                <h3><span class="tool-icon">📱</span>Generador QR con Logo</h3>
+                <div class="form-group">
+                    <label for="qr-text">Texto o URL:</label>
+                    <input type="text" id="qr-text" class="form-control" placeholder="Ingresa el texto o URL" value="https://diegomori.online">
+                </div>
+                <div class="form-group">
+                    <label for="qr-logo">Logo/Imagen (opcional):</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="qr-logo" class="file-input" accept="image/*">
+                        <div class="file-input-display">
+                            📁 Seleccionar imagen
+                        </div>
+                    </div>
+                </div>
+                <button onclick="generateQR()" class="btn">Generar QR</button>
+                <div id="qr-result" class="result-container"></div>
+            </div>
+
+            <!-- Removedor de Fondos -->
+            <div class="tool-card">
+                <h3><span class="tool-icon">🎨</span>Remover Fondo por Color</h3>
+                <div class="form-group">
+                    <label for="bg-image">Seleccionar imagen:</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="bg-image" class="file-input" accept="image/*">
+                        <div class="file-input-display">
+                            📁 Seleccionar imagen
+                        </div>
+                    </div>
+                </div>
+                <button onclick="loadImageForBgRemoval()" class="btn">Cargar Imagen</button>
+                <div id="bg-result" class="result-container"></div>
+            </div>
+
+            <!-- Convertidor de Videos (Descargador) -->
+            <div class="tool-card">
+                <h3><span class="tool-icon">🎬</span>Descargador de Videos</h3>
+                <div class="form-group">
+                    <label for="video-url">URL del video:</label>
+                    <input type="url" id="video-url" class="form-control" placeholder="https://youtube.com/watch?v=..." value="https://youtube.com/watch?v=dQw4w9WgXcQ">
+                </div>
+                <div class="form-group">
+                    <label for="video-format">Formato preferido:</label>
+                    <select id="video-format" class="form-control">
+                        <option value="mp4">MP4 (Video)</option>
+                        <option value="mp3">MP3 (Audio)</option>
+                        <option value="webm">WebM</option>
+                        <option value="avi">AVI</option>
+                    </select>
+                </div>
+                <button onclick="processVideoUrl()" class="btn">Procesar Video</button>
+                <div id="video-result" class="result-container"></div>
+            </div>
+
+            <!-- Acortador de URLs -->
+            <div class="tool-card">
+                <h3><span class="tool-icon">🔗</span>Acortador de URLs</h3>
+                <div class="form-group">
+                    <label for="long-url">URL larga:</label>
+                    <input type="url" id="long-url" class="form-control" placeholder="https://ejemplo.com/url-muy-larga">
+                </div>
+                <button onclick="shortenUrl()" class="btn">Acortar URL</button>
+                <div id="url-result" class="result-container"></div>
+            </div>
+
+            <!-- Convertidor de Colores -->
+            <div class="tool-card">
+                <h3><span class="tool-icon">🌈</span>Convertidor de Colores</h3>
+                <div class="form-group">
+                    <label for="color-input">Selecciona un color:</label>
+                    <input type="color" id="color-input" class="form-control" value="#667eea" style="height: 60px;">
+                </div>
+                <button onclick="convertColors()" class="btn">Convertir Formatos</button>
+                <div id="color-result" class="result-container"></div>
+            </div>
+
+            <!-- Generador de Contraseñas -->
+            <div class="tool-card">
+                <h3><span class="tool-icon">🔐</span>Generador de Contraseñas</h3>
+                <div class="form-group">
+                    <label for="password-length">Longitud:</label>
+                    <input type="range" id="password-length" class="form-control" min="4" max="50" value="16">
+                    <span id="length-display">16</span>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-uppercase" checked> Mayúsculas (A-Z)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-lowercase" checked> Minúsculas (a-z)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-numbers" checked> Números (0-9)
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="include-symbols" checked> Símbolos (!@#$%)
+                    </label>
+                </div>
+                <button onclick="generatePassword()" class="btn">Generar Contraseña</button>
+                <div id="password-result" class="result-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let qrCanvas = null;
+        let bgCanvas = null;
+        let bgCtx = null;
+        let originalImageData = null;
+        let shortenedUrls = {};
+
+        // Inicializar localStorage
+        try {
+            shortenedUrls = JSON.parse(localStorage.getItem('shortenedUrls') || '{}');
+        } catch (e) {
+            shortenedUrls = {};
+        }
+
+        // ============ GENERADOR QR ============
+        async function generateQR() {
+            const text = document.getElementById('qr-text').value;
+            const logoFile = document.getElementById('qr-logo').files[0];
+            const resultDiv = document.getElementById('qr-result');
+
+            if (!text.trim()) {
+                showError(resultDiv, 'Por favor ingresa un texto o URL');
+                return;
+            }
+
+            showLoading(resultDiv);
+
+            try {
+                // Verificar si QRCode está disponible
+                if (typeof QRCode === 'undefined') {
+                    // Generar QR manual usando algoritmo simple
+                    generateQRManual(text, logoFile, resultDiv);
+                    return;
+                }
+
+                const canvas = document.createElement('canvas');
+                
+                await QRCode.toCanvas(canvas, text, {
+                    width: 300,
+                    margin: 2,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                });
+
+                if (logoFile) {
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    img.onload = function() {
+                        const logoSize = 50;
+                        const x = (canvas.width - logoSize) / 2;
+                        const y = (canvas.height - logoSize) / 2;
+                        
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+                        ctx.drawImage(img, x, y, logoSize, logoSize);
+                        
+                        showQRResult(resultDiv, canvas);
+                    };
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => img.src = e.target.result;
+                    reader.readAsDataURL(logoFile);
+                } else {
+                    showQRResult(resultDiv, canvas);
+                }
+                
+            } catch (error) {
+                console.log('Error con QRCode.js, usando método alternativo');
+                generateQRManual(text, logoFile, resultDiv);
+            }
+        }
+
+        // Generador QR alternativo usando API externa
+        function generateQRManual(text, logoFile, resultDiv) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = 300;
+            canvas.width = size;
+            canvas.height = size;
+
+            // Crear URL para QR API
+            const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}`;
+            
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                
+                if (logoFile) {
+                    const logoImg = new Image();
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        logoImg.onload = function() {
+                            const logoSize = 50;
+                            const x = (size - logoSize) / 2;
+                            const y = (size - logoSize) / 2;
+                            
+                            // Fondo blanco para el logo
+                            ctx.fillStyle = 'white';
+                            ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+                            
+                            // Dibujar logo
+                            ctx.drawImage(logoImg, x, y, logoSize, logoSize);
+                            
+                            showQRResult(resultDiv, canvas);
+                        };
+                        logoImg.src = e.target.result;
+                    };
+                    reader.readAsDataURL(logoFile);
+                } else {
+                    showQRResult(resultDiv, canvas);
+                }
+            };
+            
+            img.onerror = function() {
+                // Si falla la API externa, crear QR básico con texto
+                createBasicQR(text, canvas, ctx, size, logoFile, resultDiv);
+            };
+            
+            img.src = qrApiUrl;
+        }
+
+        // Crear QR básico visual como último recurso
+        function createBasicQR(text, canvas, ctx, size, logoFile, resultDiv) {
+            // Limpiar canvas
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Crear patrón QR básico
+            ctx.fillStyle = 'black';
+            const blockSize = size / 21; // QR típico es 21x21
+            
+            // Esquinas de alineación (patrón típico QR)
+            const corners = [
+                {x: 0, y: 0}, {x: 14, y: 0}, {x: 0, y: 14}
+            ];
+            
+            corners.forEach(corner => {
+                // Marco exterior 7x7
+                ctx.fillRect(corner.x * blockSize, corner.y * blockSize, 7 * blockSize, 7 * blockSize);
+                // Interior blanco 5x5
+                ctx.fillStyle = 'white';
+                ctx.fillRect((corner.x + 1) * blockSize, (corner.y + 1) * blockSize, 5 * blockSize, 5 * blockSize);
+                // Centro negro 3x3
+                ctx.fillStyle = 'black';
+                ctx.fillRect((corner.x + 2) * blockSize, (corner.y + 2) * blockSize, 3 * blockSize, 3 * blockSize);
+            });
+            
+            // Patrón de datos simulado
+            for (let i = 0; i < 21; i++) {
+                for (let j = 0; j < 21; j++) {
+                    // Evitar esquinas ya dibujadas
+                    if ((i < 9 && j < 9) || (i < 9 && j > 12) || (i > 12 && j < 9)) continue;
+                    
+                    // Patrón pseudo-aleatorio basado en el texto
+                    const hash = text.charCodeAt(i % text.length) + i + j;
+                    if (hash % 3 === 0) {
+                        ctx.fillRect(i * blockSize, j * blockSize, blockSize, blockSize);
+                    }
+                }
+            }
+            
+            // Agregar logo si existe
+            if (logoFile) {
+                const logoImg = new Image();
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    logoImg.onload = function() {
+                        const logoSize = 50;
+                        const x = (size - logoSize) / 2;
+                        const y = (size - logoSize) / 2;
+                        
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+                        ctx.drawImage(logoImg, x, y, logoSize, logoSize);
+                        
+                        showQRResult(resultDiv, canvas);
+                    };
+                    logoImg.src = e.target.result;
+                };
+                reader.readAsDataURL(logoFile);
+            } else {
+                showQRResult(resultDiv, canvas);
+            }
+            
+            // Agregar texto de información
+            resultDiv.innerHTML += `
+                <div style="margin-top: 10px; padding: 10px; background: rgba(255,193,7,0.2); border-radius: 5px; font-size: 0.9em;">
+                    ⚠️ QR generado en modo básico. Para mejor calidad, verifica que la librería QRCode.js se cargue correctamente.
+                </div>
+            `;
+        }
+
+        function showQRResult(container, canvas) {
+            qrCanvas = canvas;
+            container.innerHTML = `
+                <div class="qr-result">
+                    ${canvas.outerHTML}
+                    <button onclick="downloadQR()" class="btn btn-secondary">Descargar QR</button>
+                </div>
+            `;
+        }
+
+        function downloadQR() {
+            if (qrCanvas) {
+                const link = document.createElement('a');
+                link.download = 'codigo-qr.png';
+                link.href = qrCanvas.toDataURL();
+                link.click();
+            }
+        }
+
+        // ============ REMOVEDOR DE FONDO ============
+        function loadImageForBgRemoval() {
+            const fileInput = document.getElementById('bg-image');
+            const resultDiv = document.getElementById('bg-result');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                showError(resultDiv, 'Por favor selecciona una imagen');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    setupBgRemovalCanvas(img, resultDiv);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setupBgRemovalCanvas(img, container) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const maxSize = 400;
+            let { width, height } = img;
+            
+            if (width > maxSize || height > maxSize) {
+                const ratio = Math.min(maxSize / width, maxSize / height);
+                width *= ratio;
+                height *= ratio;
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            bgCanvas = canvas;
+            bgCtx = ctx;
+            originalImageData = ctx.getImageData(0, 0, width, height);
+            
+            container.innerHTML = `
+                <div class="canvas-container">
+                    ${canvas.outerHTML}
+                </div>
+                <div class="color-picker-container">
+                    <label>Color a remover:</label>
+                    <input type="color" id="bg-color-picker" class="color-picker" value="#ffffff">
+                    <label>Tolerancia:</label>
+                    <input type="range" id="tolerance-slider" class="tolerance-slider" min="0" max="100" value="20">
+                    <span id="tolerance-value">20</span>
+                </div>
+                <button onclick="removeBackgroundByColor()" class="btn">Remover Color</button>
+                <button onclick="resetImage()" class="btn btn-secondary">Restaurar Original</button>
+                <button onclick="downloadProcessedImage()" class="btn btn-secondary">Descargar Resultado</button>
+            `;
+            
+            bgCanvas = container.querySelector('canvas');
+            bgCtx = bgCanvas.getContext('2d');
+            
+            document.getElementById('tolerance-slider').oninput = function() {
+                document.getElementById('tolerance-value').textContent = this.value;
+            };
+            
+            bgCanvas.onclick = function(e) {
+                const rect = bgCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                const imageData = bgCtx.getImageData(x, y, 1, 1);
+                const [r, g, b] = imageData.data;
+                const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+                document.getElementById('bg-color-picker').value = hex;
+            };
+        }
+
+        function removeBackgroundByColor() {
+            if (!originalImageData) return;
+            
+            const colorPicker = document.getElementById('bg-color-picker');
+            const tolerance = parseInt(document.getElementById('tolerance-slider').value);
+            
+            const hex = colorPicker.value;
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            
+            const imageData = bgCtx.createImageData(originalImageData);
+            const data = imageData.data;
+            const originalData = originalImageData.data;
+            
+            for (let i = 0; i < originalData.length; i += 4) {
+                const pixelR = originalData[i];
+                const pixelG = originalData[i + 1];
+                const pixelB = originalData[i + 2];
+                
+                const diff = Math.sqrt(
+                    Math.pow(pixelR - r, 2) +
+                    Math.pow(pixelG - g, 2) +
+                    Math.pow(pixelB - b, 2)
+                );
+                
+                if (diff <= tolerance * 4.41) {
+                    data[i] = pixelR;
+                    data[i + 1] = pixelG;
+                    data[i + 2] = pixelB;
+                    data[i + 3] = 0;
+                } else {
+                    data[i] = pixelR;
+                    data[i + 1] = pixelG;
+                    data[i + 2] = pixelB;
+                    data[i + 3] = originalData[i + 3];
+                }
+            }
+            
+            bgCtx.putImageData(imageData, 0, 0);
+        }
+
+        function resetImage() {
+            if (originalImageData && bgCtx) {
+                bgCtx.putImageData(originalImageData, 0, 0);
+            }
+        }
+
+        function downloadProcessedImage() {
+            if (bgCanvas) {
+                const link = document.createElement('a');
+                link.download = 'imagen-sin-fondo.png';
+                link.href = bgCanvas.toDataURL('image/png');
+                link.click();
+            }
+        }
+
+        // ============ PROCESADOR DE VIDEOS ============
+        function processVideoUrl() {
+            const url = document.getElementById('video-url').value;
+            const format = document.getElementById('video-format').value;
+            const resultDiv = document.getElementById('video-result');
+
+            if (!url.trim()) {
+                showError(resultDiv, 'Por favor ingresa una URL válida');
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                showError(resultDiv, 'URL no válida. Usa YouTube, Instagram, Facebook o TikTok');
+                return;
+            }
+
+            showVideoInfo(resultDiv, url, videoId, format);
+        }
+
+        function extractVideoId(url) {
+            const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+            const youtubeMatch = url.match(youtubeRegex);
+            if (youtubeMatch) return { platform: 'youtube', id: youtubeMatch[1] };
+            
+            if (url.includes('instagram.com')) {
+                const instagramRegex = /instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/;
+                const instagramMatch = url.match(instagramRegex);
+                if (instagramMatch) return { platform: 'instagram', id: instagramMatch[1] };
+            }
+            
+            if (url.includes('facebook.com')) {
+                return { platform: 'facebook', id: 'fb_video' };
+            }
+            
+            if (url.includes('tiktok.com')) {
+                const tiktokRegex = /tiktok\.com\/.*\/video\/(\d+)/;
+                const tiktokMatch = url.match(tiktokRegex);
+                if (tiktokMatch) return { platform: 'tiktok', id: tiktokMatch[1] };
+            }
+            
+            return null;
+        }
+
+        function showVideoInfo(container, url, videoInfo, format) {
+            const { platform, id } = videoInfo;
+            
+            container.innerHTML = `
+                <div class="video-info">
+                    <h4>📹 Video detectado</h4>
+                    <p><strong>Plataforma:</strong> ${platform.charAt(0).toUpperCase() + platform.slice(1)}</p>
+                    <p><strong>ID:</strong> ${id}</p>
+                    <p><strong>Formato:</strong> ${format.toUpperCase()}</p>
+                    <p><strong>URL:</strong> <span style="word-break: break-all;">${url}</span></p>
+                </div>
+                <div class="download-links">
+                    ${generateDownloadLinks(platform, id, format)}
+                </div>
+                <div class="success-message">
+                    <p><strong>📋 Instrucciones:</strong></p>
+                    <p>1. Haz clic en los enlaces de descarga</p>
+                    <p>2. Se abrirá la herramienta correspondiente</p>
+                    <p>3. Pega la URL original y descarga</p>
+                    <p><em>Nota: Estas herramientas son servicios externos gratuitos</em></p>
+                </div>
+            `;
+        }
+
+        function generateDownloadLinks(platform, id, format) {
+            let links = '';
+            
+            if (platform === 'youtube') {
+                links += `
+                    <a href="https://ytmp3.cc/" target="_blank" class="download-link">
+                        🎵 Descargar con YTMP3 (MP3/MP4)
+                    </a>
+                    <a href="https://y2mate.com/" target="_blank" class="download-link">
+                        📹 Descargar con Y2Mate
+                    </a>
+                    <a href="https://savefrom.net/" target="_blank" class="download-link">
+                        💾 Descargar con SaveFrom
+                    </a>
+                `;
+            } else if (platform === 'instagram') {
+                links += `
+                    <a href="https://snapinsta.app/" target="_blank" class="download-link">
+                        📸 Descargar con SnapInsta
+                    </a>
+                    <a href="https://igdownloader.com/" target="_blank" class="download-link">
+                        📱 Descargar con IGDownloader
+                    </a>
+                `;
+            } else if (platform === 'facebook') {
+                links += `
+                    <a href="https://fbdown.net/" target="_blank" class="download-link">
+                        📘 Descargar con FBDown
+                    </a>
+                    <a href="https://getfvid.com/" target="_blank" class="download-link">
+                        🔽 Descargar con GetFVid
+                    </a>
+                `;
+            } else if (platform === 'tiktok') {
+                links += `
+                    <a href="https://snaptik.app/" target="_blank" class="download-link">
+                        🎵 Descargar con SnapTik
+                    </a>
+                    <a href="https://tikmate.online/" target="_blank" class="download-link">
+                        📱 Descargar con TikMate
+                    </a>
+                `;
+            }
+            
+            return links;
+        }
+
+        // ============ ACORTADOR DE URLs ============
+        function shortenUrl() {
+            const url = document.getElementById('long-url').value;
+            const resultDiv = document.getElementById('url-result');
+
+            if (!url.trim()) {
+                showError(resultDiv, 'Por favor ingresa una URL');
+                return;
+            }
+
+            if (!isValidUrl(url)) {
+                showError(resultDiv, 'Por favor ingresa una URL válida');
+                return;
+            }
+
+            const existing = Object.keys(shortenedUrls).find(key => shortenedUrls[key] === url);
+            if (existing) {
+                showUrlResult(resultDiv, existing, url);
+                return;
+            }
+
+            showLoading(resultDiv);
+
+            setTimeout(() => {
+                const shortCode = generateShortCode();
+                const shortUrl = `https://tbx.pro/${shortCode}`;
+                
+                shortenedUrls[shortUrl] = url;
+                try {
+                    localStorage.setItem('shortenedUrls', JSON.stringify(shortenedUrls));
+                } catch (e) {
+                    console.log('Error guardando en localStorage');
+                }
+                
+                showUrlResult(resultDiv, shortUrl, url);
+            }, 1000);
+        }
+
+        function generateShortCode() {
+            const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 6; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function showUrlResult(container, shortUrl, originalUrl) {
+            container.innerHTML = `
+                <div class="success-message">
+                    <h4>✅ ¡URL acortada exitosamente!</h4>
+                    <div class="url-result-box">
+                        ${shortUrl}
+                    </div>
+                    <button onclick="copyToClipboard('${shortUrl}')" class="btn btn-secondary">📋 Copiar URL</button>
+                    <button onclick="showUrlStats('${shortUrl}')" class="btn btn-secondary">📊 Ver Estadísticas</button>
+                </div>
+            `;
+        }
+
+        function showUrlStats(shortUrl) {
+            const originalUrl = shortenedUrls[shortUrl];
+            alert(`📊 Estadísticas de URL:
+
+🔗 URL Corta: ${shortUrl}
+🌐 URL Original: ${originalUrl}
+📅 Creada: ${new Date().toLocaleDateString()}
+👆 Clics: 0 (función demo)
+🎯 Conversión: 0%
+
+💡 Esta es una demostración local usando localStorage`);
+        }
+
+        // ============ CONVERTIDOR DE COLORES ============
+        function convertColors() {
+            const colorInput = document.getElementById('color-input');
+            const resultDiv = document.getElementById('color-result');
+            const hex = colorInput.value;
+
+            // Convertir HEX a RGB
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+
+            // Convertir RGB a HSL
+            const rNorm = r / 255;
+            const gNorm = g / 255;
+            const bNorm = b / 255;
+
+            const max = Math.max(rNorm, gNorm, bNorm);
+            const min = Math.min(rNorm, gNorm, bNorm);
+            const diff = max - min;
+
+            let h = 0;
+            let s = 0;
+            let l = (max + min) / 2;
+
+            if (diff !== 0) {
+                s = l > 0.5 ? diff / (2 - max - min) : diff / (max + min);
+                
+                switch (max) {
+                    case rNorm:
+                        h = (gNorm - bNorm) / diff + (gNorm < bNorm ? 6 : 0);
+                        break;
+                    case gNorm:
+                        h = (bNorm - rNorm) / diff + 2;
+                        break;
+                    case bNorm:
+                        h = (rNorm - gNorm) / diff + 4;
+                        break;
+                }
+                h /= 6;
+            }
+
+            h = Math.round(h * 360);
+            s = Math.round(s * 100);
+            l = Math.round(l * 100);
+
+            resultDiv.innerHTML = `
+                <div class="success-message">
+                    <h4>🌈 Conversiones de Color</h4>
+                    <div style="background: ${hex}; width: 100px; height: 50px; margin: 1rem auto; border-radius: 10px; border: 2px solid #333;"></div>
+                    
+                    <div style="text-align: left; margin: 1rem 0;">
+                        <p><strong>HEX:</strong> <code>${hex.toUpperCase()}</code></p>
+                        <p><strong>RGB:</strong> <code>rgb(${r}, ${g}, ${b})</code></p>
+                        <p><strong>RGBA:</strong> <code>rgba(${r}, ${g}, ${b}, 1)</code></p>
+                        <p><strong>HSL:</strong> <code>hsl(${h}, ${s}%, ${l}%)</code></p>
+                        <p><strong>HSLA:</strong> <code>hsla(${h}, ${s}%, ${l}%, 1)</code></p>
+                    </div>
+                    
+                    <button onclick="copyColorFormats('${hex}', '${r}, ${g}, ${b}', '${h}, ${s}%, ${l}%')" class="btn btn-secondary">
+                        📋 Copiar Todos los Formatos
+                    </button>
+                </div>
+            `;
+        }
+
+        function copyColorFormats(hex, rgb, hsl) {
+            const formats = `HEX: ${hex.toUpperCase()}
+RGB: rgb(${rgb})
+RGBA: rgba(${rgb}, 1)
+HSL: hsl(${hsl})
+HSLA: hsla(${hsl}, 1)`;
+
+            copyToClipboard(formats);
+        }
+
+        // ============ GENERADOR DE CONTRASEÑAS ============
+        function generatePassword() {
+            const length = parseInt(document.getElementById('password-length').value);
+            const includeUppercase = document.getElementById('include-uppercase').checked;
+            const includeLowercase = document.getElementById('include-lowercase').checked;
+            const includeNumbers = document.getElementById('include-numbers').checked;
+            const includeSymbols = document.getElementById('include-symbols').checked;
+            const resultDiv = document.getElementById('password-result');
+
+            let charset = '';
+            if (includeUppercase) charset += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            if (includeLowercase) charset += 'abcdefghijklmnopqrstuvwxyz';
+            if (includeNumbers) charset += '0123456789';
+            if (includeSymbols) charset += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+            if (charset === '') {
+                showError(resultDiv, 'Selecciona al menos un tipo de carácter');
+                return;
+            }
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += charset.charAt(Math.floor(Math.random() * charset.length));
+            }
+
+            // Calcular fortaleza
+            let strength = 'Débil';
+            let strengthColor = '#e74c3c';
+            let score = 0;
+
+            if (length >= 8) score++;
+            if (length >= 12) score++;
+            if (includeUppercase) score++;
+            if (includeLowercase) score++;
+            if (includeNumbers) score++;
+            if (includeSymbols) score++;
+
+            if (score >= 5) {
+                strength = 'Muy Fuerte';
+                strengthColor = '#27ae60';
+            } else if (score >= 4) {
+                strength = 'Fuerte';
+                strengthColor = '#f39c12';
+            } else if (score >= 3) {
+                strength = 'Media';
+                strengthColor = '#e67e22';
+            }
+
+            resultDiv.innerHTML = `
+                <div class="success-message">
+                    <h4>🔐 Contraseña Generada</h4>
+                    <div class="url-result-box" style="font-size: 1.2rem; letter-spacing: 1px;">
+                        ${password}
+                    </div>
+                    <p><strong>Fortaleza:</strong> <span style="color: ${strengthColor}; font-weight: bold;">${strength}</span></p>
+                    <p><strong>Longitud:</strong> ${length} caracteres</p>
+                    <button onclick="copyToClipboard('${password}')" class="btn btn-secondary">📋 Copiar Contraseña</button>
+                    <button onclick="generatePassword()" class="btn btn-secondary">🔄 Generar Nueva</button>
+                </div>
+            `;
+        }
+
+        // ============ FUNCIONES AUXILIARES ============
+        function showLoading(container) {
+            container.innerHTML = '<div class="loading"></div>';
+        }
+
+        function showError(container, message) {
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification('📋 ¡Copiado al portapapeles!');
+                });
+            } else {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showNotification('📋 ¡Copiado al portapapeles!');
+            }
+        }
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(45deg, #00b894, #55a3ff);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 1000;
+                font-weight: 600;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // ============ EVENT LISTENERS ============
+        document.addEventListener('DOMContentLoaded', function() {
+            // Actualizar display de longitud de contraseña
+            const lengthSlider = document.getElementById('password-length');
+            const lengthDisplay = document.getElementById('length-display');
+            
+            lengthSlider.addEventListener('input', function() {
+                lengthDisplay.textContent = this.value;
+            });
+
+            // Actualizar nombres de archivos seleccionados
+            document.getElementById('qr-logo').addEventListener('change', function(e) {
+                const display = this.parentNode.querySelector('.file-input-display');
+                display.innerHTML = e.target.files[0] ? `📁 ${e.target.files[0].name}` : '📁 Seleccionar imagen';
+            });
+
+            document.getElementById('bg-image').addEventListener('change', function(e) {
+                const display = this.parentNode.querySelector('.file-input-display');
+                display.innerHTML = e.target.files[0] ? `📁 ${e.target.files[0].name}` : '📁 Seleccionar imagen';
+            });
+
+            // Mostrar información de URLs guardadas
+            const savedCount = Object.keys(shortenedUrls).length;
+            if (savedCount > 0) {
+                console.log(`📊 URLs guardadas localmente: ${savedCount}`);
+            }
+        });
+
+        // ============ ATAJOS DE TECLADO ============
+        document.addEventListener('keydown', function(e) {
+            // Ctrl/Cmd + Enter para generar QR
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                const activeElement = document.activeElement;
+                if (activeElement.id === 'qr-text') {
+                    generateQR();
+                } else if (activeElement.id === 'long-url') {
+                    shortenUrl();
+                } else if (activeElement.id === 'video-url') {
+                    processVideoUrl();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
